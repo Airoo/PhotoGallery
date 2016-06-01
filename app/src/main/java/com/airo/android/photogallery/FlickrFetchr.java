@@ -18,13 +18,15 @@ import java.util.List;
 /**
  * Created by Airo on 31.05.2016.
  */
+
 public class FlickrFetchr {
+
     private static final String TAG = "FlickrFetchr";
     private static final String API_KEY = "ef245ed5b67918a950ebc01d20199df4";
 
     public byte[] getUrlBytes(String urlSpec) throws IOException {
         URL url = new URL(urlSpec);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        HttpURLConnection connection = (HttpURLConnection)url.openConnection();
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             InputStream in = connection.getInputStream();
@@ -44,13 +46,14 @@ public class FlickrFetchr {
             connection.disconnect();
         }
     }
-
     public String getUrlString(String urlSpec) throws IOException {
         return new String(getUrlBytes(urlSpec));
     }
 
     public List<GalleryItem> fetchItems() {
+
         List<GalleryItem> items = new ArrayList<>();
+
         try {
             String url = Uri.parse("https://api.flickr.com/services/rest/")
                     .buildUpon()
@@ -64,28 +67,35 @@ public class FlickrFetchr {
             Log.i(TAG, "Received JSON: " + jsonString);
             JSONObject jsonBody = new JSONObject(jsonString);
             parseItems(items, jsonBody);
-        } catch (JSONException je) {
-            Log.e(TAG, "Failed to parse JSON", je);
         } catch (IOException ioe) {
             Log.e(TAG, "Failed to fetch items", ioe);
+        } catch (JSONException je) {
+            Log.e(TAG, "Failed to parse JSON", je);
         }
+
         return items;
     }
 
     private void parseItems(List<GalleryItem> items, JSONObject jsonBody)
             throws IOException, JSONException {
+
         JSONObject photosJsonObject = jsonBody.getJSONObject("photos");
         JSONArray photoJsonArray = photosJsonObject.getJSONArray("photo");
+
         for (int i = 0; i < photoJsonArray.length(); i++) {
             JSONObject photoJsonObject = photoJsonArray.getJSONObject(i);
+
             GalleryItem item = new GalleryItem();
             item.setId(photoJsonObject.getString("id"));
             item.setCaption(photoJsonObject.getString("title"));
+
             if (!photoJsonObject.has("url_s")) {
                 continue;
             }
+
             item.setUrl(photoJsonObject.getString("url_s"));
             items.add(item);
         }
     }
+
 }
