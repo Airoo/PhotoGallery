@@ -1,6 +1,7 @@
 package com.airo.android.photogallery;
 
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -42,8 +43,9 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         setHasOptionsMenu(true);
-        new FetchItemsTask().execute();
+        updateItems();
 
+        PollService.setServiceAlarm(getActivity(), true);
         Handler responseHandler = new Handler();
         mThumbnailDownloader = new ThumbnailDownloader<>(responseHandler);
         mThumbnailDownloader.setThumbnailDownloadListener(
@@ -134,14 +136,17 @@ public class PhotoGalleryFragment extends Fragment {
     }
 
     private class FetchItemsTask extends AsyncTask<Void,Void,List<GalleryItem>> {
+        private String mQuery;
+        public FetchItemsTask(String query) {
+            mQuery = query;
+        }
 
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
-            String query = "robot"; // Для тестирования
-            if (query == null) {
+            if (mQuery == null) {
                 return new FlickrFetchr().fetchRecentPhotos();
             } else {
-                return new FlickrFetchr().searchPhotos(query);
+                return new FlickrFetchr().searchPhotos(mQuery);
             }
         }
 
@@ -169,6 +174,7 @@ public class PhotoGalleryFragment extends Fragment {
                     @Override
                     public boolean onQueryTextSubmit(String s) {
                         Log.d(TAG, "QueryTextSubmit: " + s);
+                        QueryPreferences.setStoredQuery(getActivity(), s);
                         updateItems();
                         return true;
                     }
@@ -178,9 +184,28 @@ public class PhotoGalleryFragment extends Fragment {
                         return false;
                     }
                 });
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String query = QueryPreferences.getStoredQuery(getActivity());
+                searchView.setQuery(query, false);
+            }
+        });
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_clear:
+                QueryPreferences.setStoredQuery(getActivity(), null);
+                updateItems();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
     private void updateItems() {
-        new FetchItemsTask().execute();
+        String query = QueryPreferences.getStoredQuery(getActivity());
+        new FetchItemsTask(query).execute();
     }
 
 }
