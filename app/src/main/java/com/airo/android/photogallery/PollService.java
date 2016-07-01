@@ -1,5 +1,6 @@
 package com.airo.android.photogallery;
 
+import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.Notification;
@@ -19,9 +20,15 @@ import java.util.List;
  * Created by Airo on 28.06.2016.
  */
 public class PollService extends IntentService {
+    public static final String REQUEST_CODE = "REQUEST_CODE";
+    public static final String NOTIFICATION = "NOTIFICATION";
     private static final String TAG = "PollService";
-    private static final int POLL_INTERVAL = 1000 * 60; // 60 секунд
-
+    private static final long POLL_INTERVAL =
+            AlarmManager.INTERVAL_FIFTEEN_MINUTES; // 60 секунд
+    public static final String ACTION_SHOW_NOTIFICATION =
+            "com.airo.android.photogallery.SHOW_NOTIFICATION";
+    public static final String PERM_PRIVATE =
+            "com.airo.android.photogallery.PRIVATE";
     public static Intent newIntent(Context context) {
         return new Intent(context, PollService.class);
     }
@@ -37,6 +44,7 @@ public class PollService extends IntentService {
             alarmManager.cancel(pi);
             pi.cancel();
         }
+        QueryPreferences.setAlarmOn(context, isOn);
     }
     public static boolean isServiceAlarmOn(Context context) {
         Intent i = PollService.newIntent(context);
@@ -64,6 +72,7 @@ public class PollService extends IntentService {
         } else {
             items = new FlickrFetchr().searchPhotos(query);
         }
+
         if (items.size() == 0) {
             return;
         }
@@ -83,9 +92,12 @@ public class PollService extends IntentService {
                     .setContentIntent(pi)
                     .setAutoCancel(true)
                     .build();
-            NotificationManagerCompat notificationManager =
+           /* NotificationManagerCompat notificationManager =
                     NotificationManagerCompat.from(this);
             notificationManager.notify(0, notification);
+
+            sendBroadcast(new Intent(ACTION_SHOW_NOTIFICATION));*/
+            showBackgroundNotification(0, notification);
         }
         QueryPreferences.setLastResultId(this, resultId);
     }
@@ -96,5 +108,13 @@ public class PollService extends IntentService {
         boolean isNetworkConnected = isNetworkAvailable &&
                 cm.getActiveNetworkInfo().isConnected();
         return isNetworkConnected;
+    }
+    private void showBackgroundNotification(int requestCode,
+                                            Notification notification) {
+        Intent i = new Intent(ACTION_SHOW_NOTIFICATION);
+        i.putExtra(REQUEST_CODE, requestCode);
+        i.putExtra(NOTIFICATION, notification);
+        sendOrderedBroadcast(i, PERM_PRIVATE, null, null,
+                Activity.RESULT_OK, null, null);
     }
 }
